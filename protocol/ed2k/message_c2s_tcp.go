@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"net"
 	"strings"
+
+	"github.com/eyedeekay/sam3/i2pkeys"
 )
 
 // LoginMessage is the first message send by the client to the server after TCP connection establishment.
@@ -392,7 +394,7 @@ func (m GetServerListMessage) String() string {
 type ServerListMessage struct {
 	message
 	// Server descriptor entries, each entry size is 6 bytes and contains 4 bytes IP address and then 2 byte TCP port.
-	Servers []*net.TCPAddr
+	Servers []net.Addr
 }
 
 // Encode encodes the message to binary data.
@@ -414,8 +416,14 @@ func (m *ServerListMessage) Encode() (data []byte, err error) {
 				Port: 0,
 			}
 		}
-		buf.Write(addr.IP.To4())
-		binary.Write(buf, binary.LittleEndian, uint16(addr.Port))
+		switch a := addr.(type) {
+		case *net.TCPAddr:
+			buf.Write(a.IP.To4())
+			binary.Write(buf, binary.LittleEndian, uint16(a.Port))
+		case i2pkeys.I2PAddr:
+			buf.Write([]byte(a.Base32()))
+			binary.Write(buf, binary.LittleEndian, uint16(4132))
+		}
 	}
 
 	data = buf.Bytes()
@@ -838,7 +846,7 @@ func (m GetSourcesMessage) String() string {
 type FoundSourcesMessage struct {
 	message
 	Hash    [16]byte
-	Sources []*net.TCPAddr
+	Sources []net.Addr
 }
 
 // Encode encodes the message to binary data.
@@ -858,8 +866,15 @@ func (m *FoundSourcesMessage) Encode() (data []byte, err error) {
 				Port: 0,
 			}
 		}
-		buf.Write(source.IP.To4())
-		binary.Write(buf, binary.LittleEndian, uint16(source.Port))
+
+		switch a := source.(type) {
+		case *net.TCPAddr:
+			buf.Write(a.IP.To4())
+			binary.Write(buf, binary.LittleEndian, uint16(a.Port))
+		case i2pkeys.I2PAddr:
+			buf.Write([]byte(a.Base32()))
+			binary.Write(buf, binary.LittleEndian, uint16(4132))
+		}
 	}
 
 	data = buf.Bytes()

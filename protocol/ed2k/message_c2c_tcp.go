@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"net"
+
+	"github.com/eyedeekay/sam3/i2pkeys"
 )
 
 // HelloMessage message is the first message in the handshake between two e-mule clients.
@@ -16,7 +18,7 @@ type HelloMessage struct {
 	Port     uint16
 	Tags     []Tag
 	// The address of the server to which the client is connected.
-	Server *net.TCPAddr
+	Server net.Addr
 }
 
 // Encode encodes the message to binary data.
@@ -48,8 +50,17 @@ func (m *HelloMessage) Encode() (data []byte, err error) {
 			Port: 0,
 		}
 	}
-	buf.Write(server.IP.To4())
-	binary.Write(buf, binary.LittleEndian, uint16(server.Port))
+
+	switch a := server.(type) {
+	case *net.TCPAddr:
+		buf.Write(a.IP.To4())
+		binary.Write(buf, binary.LittleEndian, uint16(a.Port))
+	case i2pkeys.I2PAddr:
+		buf.Write([]byte(a.Base32()))
+		binary.Write(buf, binary.LittleEndian, uint16(4132))
+	}
+	//	buf.Write(server.IP.To4())
+	//	binary.Write(buf, binary.LittleEndian, uint16(server.Port))
 
 	data = buf.Bytes()
 	size := len(data) - HeaderLength
@@ -135,7 +146,7 @@ type HelloAnswerMessage struct {
 	Port     uint16
 	Tags     []Tag
 	// The address of the server to which the client is connected.
-	Server *net.TCPAddr
+	Server net.Addr
 }
 
 // Encode encodes the message to binary data.
@@ -166,8 +177,14 @@ func (m *HelloAnswerMessage) Encode() (data []byte, err error) {
 			Port: 0,
 		}
 	}
-	buf.Write(server.IP.To4())
-	binary.Write(buf, binary.LittleEndian, uint16(server.Port))
+	switch a := server.(type) {
+	case *net.TCPAddr:
+		buf.Write(a.IP.To4())
+		binary.Write(buf, binary.LittleEndian, uint16(a.Port))
+	case i2pkeys.I2PAddr:
+		buf.Write([]byte(a.Base32()))
+		binary.Write(buf, binary.LittleEndian, uint16(4132))
+	}
 
 	data = buf.Bytes()
 	size := len(data) - HeaderLength

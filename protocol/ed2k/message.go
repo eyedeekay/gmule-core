@@ -82,7 +82,7 @@ type UID [16]byte
 
 // NewUID creates a UID based on GUID
 func NewUID() (uid UID) {
-	uuid := uuid.NewV4()
+	uuid, _ := uuid.NewV4()
 	copy(uid[:], uuid[:])
 	uid[5], uid[14] = 14, 111
 	return
